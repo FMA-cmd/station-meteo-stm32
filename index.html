@@ -1,48 +1,187 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Station Météo IA (Edge AI)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Station Météo Edge AI</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #eef2f5; padding: 40px; color: #333; }
-        .dashboard { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; margin-top: 30px; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); width: 220px; border-top: 4px solid #007BFF; }
-        .card-ia { border-top: 4px solid #8E44AD; /* Couleur violette pour différencier l'IA */ background-color: #fcf9ff;}
-        .valeur { font-size: 2.5em; font-weight: bold; margin: 15px 0; color: #2C3E50; }
-        .unite { font-size: 0.4em; color: #7f8c8d; }
-        h3 { margin-top: 0; color: #34495e; font-size: 1.2em; text-transform: uppercase; letter-spacing: 1px; }
+        /* === VARIABLES DE COULEURS === */
+        :root {
+            --bg-gradient-1: #0f172a;
+            --bg-gradient-2: #1e293b;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-temp: #ef4444;  /* Rouge */
+            --accent-hum: #3b82f6;   /* Bleu */
+            --accent-press: #10b981; /* Vert */
+            --accent-ia: #a855f7;    /* Violet */
+            --color-beau: #fbbf24;   /* Jaune Soleil */
+            --color-pluie: #60a5fa;  /* Bleu Pluie */
+            --color-orage: #f87171;  /* Rouge Orage */
+        }
+
+        /* === STYLE GLOBAL === */
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: linear-gradient(135deg, var(--bg-gradient-1), var(--bg-gradient-2));
+            color: var(--text-main);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* === EN-TÊTE === */
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            background: -webkit-linear-gradient(45deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        
+        .status-container {
+            display: flex;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.9em;
+            margin-bottom: 40px;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-press);
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* === GRILLE DES CARTES === */
+        .dashboard { 
+            display: flex; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+            gap: 20px; 
+            max-width: 1000px;
+        }
+
+        /* === DESIGN DES CARTES === */
+        .card { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 25px 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            width: 160px; 
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        /* Carte Verdict plus large et mise en avant */
+        .card-verdict { 
+            width: 280px; 
+            border-top: 4px solid var(--accent-ia);
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(168, 85, 247, 0.1) 100%);
+        }
+
+        h3 { 
+            margin-top: 0; 
+            color: var(--text-muted); 
+            font-size: 0.9em; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
+
+        .valeur { 
+            font-size: 2.5em; 
+            font-weight: 800; 
+            margin: 15px 0; 
+        }
+
+        .verdict-text { 
+            font-size: 2em; 
+            font-weight: 800;
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            margin: 10px 0;
+            text-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        .unite { 
+            font-size: 0.35em; 
+            color: var(--text-muted); 
+            font-weight: normal; 
+            vertical-align: middle;
+        }
+
     </style>
 </head>
 <body>
 
-    <h1>Tableau de Bord : Station Météo Edge AI</h1>
-    <p>Dernière mise à jour : <strong id="heure">-</strong></p>
+    <h1>🧠 Dashboard Edge AI</h1>
+    <div class="status-container">
+        <div class="pulse"></div>
+        <span>En direct du NPU • MAJ : <strong id="heure">--:--:--</strong></span>
+    </div>
 
     <div class="dashboard">
-        <div class="card">
-            <h3>Température</h3>
-            <p class="valeur"><span id="temp">--</span><span class="unite"> °C</span></p>
-        </div>
-        <div class="card">
-            <h3>Humidité</h3>
-            <p class="valeur"><span id="hum">--</span><span class="unite"> %</span></p>
-        </div>
-        <div class="card">
-            <h3>Pression</h3>
-            <p class="valeur"><span id="press">--</span><span class="unite"> hPa</span></p>
+        <div class="card" style="border-bottom: 3px solid var(--accent-temp)">
+            <h3>🌡️ Temp</h3>
+            <p class="valeur" style="color: var(--accent-temp)"><span id="temp">--</span><span class="unite"> °C</span></p>
         </div>
         
-        <div class="card card-ia">
-            <h3>Confiance IA</h3>
-            <p class="valeur"><span id="prob">--</span><span class="unite"> %</span></p>
+        <div class="card" style="border-bottom: 3px solid var(--accent-hum)">
+            <h3>💧 Hum</h3>
+            <p class="valeur" style="color: var(--accent-hum)"><span id="hum">--</span><span class="unite"> %</span></p>
+        </div>
+
+        <div class="card card-verdict">
+            <h3>⚡ Verdict IA</h3>
+            <p class="verdict-text" id="verdict">Analyse...</p>
+            <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 0;">
+                Confiance : <strong id="prob" style="color: var(--text-main); font-size: 1.2em;">--</strong> %
+            </p>
+        </div>
+        
+        <div class="card" style="border-bottom: 3px solid var(--accent-press)">
+            <h3>🌪️ Pression</h3>
+            <p class="valeur" style="color: var(--accent-press)"><span id="press">--</span><span class="unite"> hPa</span></p>
         </div>
     </div>
 
     <script>
-        const channelID = '3347394';   
-        const readAPIKey = 'JDL5UC8GJGC5KB02'; 
-        
+        // === ⚠️ METS TES CLES THINGSPEAK ICI ⚠️ ===
+        const channelID = 'TON_CHANNEL_ID';   
+        const readAPIKey = 'TA_READ_API_KEY'; 
+        // ==========================================
+
         const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPIKey}&results=1`;
+        
+        // Les labels qui correspondent exactement à tes index C (0, 1, 2)
+        const meteoLabels = ["Beau Temps", "Pluvieux", "Orageux"];
+        const meteoColors = ["var(--color-beau)", "var(--color-pluie)", "var(--color-orage)"];
 
         async function fetchMeteo() {
             try {
@@ -52,16 +191,26 @@
                 if(data.feeds && data.feeds.length > 0) {
                     const dernierReleve = data.feeds[0];
 
+                    // Mise à jour des capteurs (Field 1, 2, 3)
                     document.getElementById('temp').innerText = dernierReleve.field1 ? dernierReleve.field1 : "--";
                     document.getElementById('hum').innerText = dernierReleve.field2 ? dernierReleve.field2 : "--";
                     document.getElementById('press').innerText = dernierReleve.field3 ? dernierReleve.field3 : "--";
                     
+                    // Mise à jour de la probabilité exacte (Field 4)
                     if(dernierReleve.field4) {
                         document.getElementById('prob').innerText = parseFloat(dernierReleve.field4).toFixed(1);
-                    } else {
-                        document.getElementById('prob').innerText = "--";
                     }
 
+                    // Mise à jour du texte Verdict (Field 5)
+                    const indexIA = parseInt(dernierReleve.field5);
+                    const verdictElement = document.getElementById('verdict');
+                    
+                    if(!isNaN(indexIA) && indexIA >= 0 && indexIA < meteoLabels.length) {
+                        verdictElement.innerText = meteoLabels[indexIA];
+                        verdictElement.style.color = meteoColors[indexIA];
+                    }
+
+                    // Mise à jour de l'heure
                     document.getElementById('heure').innerText = new Date(dernierReleve.created_at).toLocaleTimeString();
                 }
             } catch (error) {
@@ -69,8 +218,8 @@
             }
         }
 
+        // Lancer la première lecture, puis actualiser toutes les 20 secondes
         fetchMeteo();
-
         setInterval(fetchMeteo, 20000);
     </script>
 
