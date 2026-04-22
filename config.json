@@ -1,0 +1,14 @@
+{
+  "thingspeak": {
+    "channelID": "3347394",
+    "readAPIKey": "DHXMOYSJKJOMDGD6",
+    "talkbackID": "56801",
+    "talkbackAPIKey": "YOSMVPGKEFNLLX1W"
+  },
+  "station": {
+    "name": "Ma Station",
+    "location": "Annecy, FR",
+    "refreshInterval": 20000,
+    "historyPoints": 24
+  }
+}

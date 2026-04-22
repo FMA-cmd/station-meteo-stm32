@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphiques · Station Météo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: -apple-system, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #0f1f35 0%, #1a3a5c 50%, #2d6a9f 100%);
+            color: #fff;
+            padding: 50px 20px 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .content { width: 100%; max-width: 860px; }
+
+        /* Nav */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+            animation: fadeDown 0.6s ease both;
+        }
+        .nav a {
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.25);
+            transition: background 0.2s;
+            color: white;
+        }
+        .nav a.active { background: rgba(255,255,255,0.25); }
+        .nav a:not(.active) { background: rgba(255,255,255,0.1); }
+        .nav a:hover { background: rgba(255,255,255,0.3); }
+
+        @keyframes fadeDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)}  to{opacity:1;transform:translateY(0)} }
+
+        /* Header */
+        .page-title {
+            text-align: center;
+            margin-bottom: 36px;
+            animation: fadeDown 0.7s 0.1s ease both;
+        }
+        .page-title h1 { font-size: 1.8rem; font-weight: 300; letter-spacing: -0.5px; }
+        .page-title p  { color: rgba(255,255,255,0.55); font-size: 0.85rem; margin-top: 4px; }
+
+        /* Range selector */
+        .range-bar {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 28px;
+            animation: fadeUp 0.7s 0.2s ease both;
+        }
+        .range-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 14px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .range-btn.active { background: rgba(255,255,255,0.28); border-color: rgba(255,255,255,0.4); }
+        .range-btn:hover { background: rgba(255,255,255,0.2); }
+
+        /* Glass card */
+        .glass {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px) saturate(1.4);
+            -webkit-backdrop-filter: blur(20px) saturate(1.4);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 22px;
+            padding: 22px 22px 16px;
+            margin-bottom: 16px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 16px;
+        }
+        .chart-title {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: rgba(255,255,255,0.55);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chart-current {
+            font-size: 1.5rem;
+            font-weight: 200;
+        }
+        .chart-unit { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+
+        canvas { width: 100% !important; }
+
+        /* Charts grid */
+        .charts-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+            animation: fadeUp 0.7s 0.3s ease both;
+        }
+        .charts-2col .glass { margin-bottom: 0; }
+
+        .chart-full { animation: fadeUp 0.7s 0.4s ease both; }
+
+        /* Forecast */
+        .forecast-section {
+            animation: fadeUp 0.7s 0.5s ease both;
+        }
+        .forecast-title {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: rgba(255,255,255,0.55);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .forecast-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.13);
+            border-radius: 18px;
+            padding: 18px 14px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        .forecast-card:hover { background: rgba(255,255,255,0.14); }
+        .fc-day   { font-size: 0.75rem; color: rgba(255,255,255,0.55); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .fc-icon  { font-size: 2.2rem; display: block; margin-bottom: 8px; }
+        .fc-label { font-size: 0.9rem; font-weight: 500; margin-bottom: 6px; }
+        .fc-temp  { font-size: 1.6rem; font-weight: 200; }
+        .fc-temp span { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+        .fc-conf  { font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-top: 6px; }
+        .fc-trend {
+            margin-top: 8px;
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            color: rgba(255,255,255,0.4);
+            padding: 20px;
+            font-size: 0.85rem;
+        }
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .dot { width:6px;height:6px;background:#34C759;border-radius:50%;display:inline-block;animation:blink 2s infinite; }
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+        .update-bar { text-align:center; font-size:0.75rem; color:rgba(255,255,255,0.5); margin-top:24px; }
+    </style>
+</head>
+<body>
+<div class="content">
+
+    <nav class="nav">
+        <a href="index.html">🌤 Maintenant</a>
+        <a href="graphs.html" class="active">📈 Graphiques</a>
+    </nav>
+
+    <div class="page-title">
+        <h1>📊 Historique & Prévisions</h1>
+        <p id="station-subtitle">Station · Chargement…</p>
+    </div>
+
+    <div class="range-bar">
+        <button class="range-btn" onclick="setRange(10)">10 pts</button>
+        <button class="range-btn active" onclick="setRange(24)">24 pts</button>
+        <button class="range-btn" onclick="setRange(48)">48 pts</button>
+        <button class="range-btn" onclick="setRange(100)">100 pts</button>
+    </div>
+
+    <!-- Charts 2x2 -->
+    <div class="charts-2col">
+        <div class="glass">
+            <div class="chart-header">
+                <div class="chart-title">🌡️ Température</div>
+                <div><span class="chart-current" id="cur-temp">--</span><span class="chart-unit"> °C</span></div>
+            </div>
+            <canvas id="chart-temp" height="120"></canvas>
+        </div>
+        <div class="glass">
+            <div class="chart-header">
+                <div class="chart-title">💧 Humidité</div>
+                <div><span class="chart-current" id="cur-hum">--</span><span class="chart-unit"> %</span></div>
+            </div>
+            <canvas id="chart-hum" height="120"></canvas>
+        </div>
+    </div>
+
+    <div class="charts-2col chart-full" style="animation-delay:0.35s">
+        <div class="glass">
+            <div class="chart-header">
+                <div class="chart-title">🌪 Pression</div>
+                <div><span class="chart-current" id="cur-press">--</span><span class="chart-unit"> hPa</span></div>
+            </div>
+            <canvas id="chart-press" height="120"></canvas>
+        </div>
+        <div class="glass">
+            <div class="chart-header">
+                <div class="chart-title">⚡ Confiance IA</div>
+                <div><span class="chart-current" id="cur-conf">--</span><span class="chart-unit"> %</span></div>
+            </div>
+            <canvas id="chart-conf" height="120"></canvas>
+        </div>
+    </div>
+
+    <!-- Forecast -->
+    <div class="forecast-section">
+        <div class="glass">
+            <div class="forecast-title">🔮 Prévisions générées par IA · <span class="dot"></span> Basées sur les tendances</div>
+            <div class="forecast-grid" id="forecast-grid">
+                <div class="loading"><span class="spinner"></span> Analyse des tendances…</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="update-bar">
+        <span class="dot" style="margin-right:5px"></span>
+        Dernière MAJ : <strong id="last-update">--:--:--</strong>
+    </div>
+</div>
+
+<script>
+let cfg = {};
+let charts = {};
+let allFeeds = [];
+let currentRange = 24;
+
+// Chart.js defaults
+Chart.defaults.color = 'rgba(255,255,255,0.5)';
+Chart.defaults.font.family = '-apple-system, Helvetica Neue, sans-serif';
+Chart.defaults.font.size = 11;
+
+const CHART_CONFIGS = [
+    { id:'chart-temp',  field:'field1', color:'#FF6B6B', label:'°C',  curId:'cur-temp',  title:'Température' },
+    { id:'chart-hum',   field:'field2', color:'#74B9FF', label:'%',   curId:'cur-hum',   title:'Humidité' },
+    { id:'chart-press', field:'field3', color:'#55EFC4', label:'hPa', curId:'cur-press', title:'Pression' },
+    { id:'chart-conf',  field:'field4', color:'#A29BFE', label:'%',   curId:'cur-conf',  title:'Confiance IA' },
+];
+
+function makeGradient(ctx, color) {
+    const g = ctx.createLinearGradient(0, 0, 0, 150);
+    g.addColorStop(0, color + '55');
+    g.addColorStop(1, color + '00');
+    return g;
+}
+
+function createChart(cfg_item, labels, values) {
+    const canvas = document.getElementById(cfg_item.id);
+    const ctx = canvas.getContext('2d');
+    const grad = makeGradient(ctx, cfg_item.color);
+
+    if(charts[cfg_item.id]) charts[cfg_item.id].destroy();
+
+    charts[cfg_item.id] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                borderColor: cfg_item.color,
+                backgroundColor: grad,
+                borderWidth: 2,
+                pointRadius: values.length > 30 ? 0 : 3,
+                pointHoverRadius: 5,
+                pointBackgroundColor: cfg_item.color,
+                fill: true,
+                tension: 0.4,
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: { duration: 600, easing: 'easeInOutQuart' },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(10,20,40,0.85)',
+                    titleColor: 'rgba(255,255,255,0.7)',
+                    bodyColor: cfg_item.color,
+                    padding: 10,
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.y.toFixed(1)} ${cfg_item.label}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { maxTicksLimit: 6, maxRotation: 0 }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { maxTicksLimit: 5 }
+                }
+            }
+        }
+    });
+}
+
+function renderCharts(feeds) {
+    const sliced = feeds.slice(-currentRange);
+    const labels = sliced.map(f => new Date(f.created_at).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}));
+
+    CHART_CONFIGS.forEach(c => {
+        const values = sliced.map(f => f[c.field] ? parseFloat(f[c.field]) : null);
+        createChart(c, labels, values);
+
+        // Current value = dernière non-nulle
+        const last = [...values].reverse().find(v => v !== null);
+        if(last !== undefined) {
+            const el = document.getElementById(c.curId);
+            el.textContent = last.toFixed(1);
+        }
+    });
+}
+
+// ── PRÉVISIONS ───────────────────────────────────────────────────
+const CONDITIONS = [
+    { label:"Beau Temps", icon:"☀️",  color:"#FFD60A" },
+    { label:"Pluvieux",   icon:"🌧️",  color:"#74B9FF" },
+    { label:"Orageux",    icon:"⛈️",  color:"#A29BFE" },
+];
+
+function linearTrend(values) {
+    const clean = values.filter(v => v !== null);
+    if(clean.length < 2) return 0;
+    const n = clean.length;
+    const xs = clean.map((_,i) => i);
+    const mx = xs.reduce((a,b)=>a+b,0)/n;
+    const my = clean.reduce((a,b)=>a+b,0)/n;
+    const num = xs.reduce((acc,x,i)=>acc+(x-mx)*(clean[i]-my),0);
+    const den = xs.reduce((acc,x)=>acc+(x-mx)**2,0);
+    return den ? num/den : 0;
+}
+
+function predictClass(temp, hum, press) {
+    // Règles heuristiques simples basées sur les valeurs courantes
+    if(press < 990 && hum > 80) return 2; // orage
+    if(press < 1005 && hum > 65) return 1; // pluie
+    return 0; // beau
+}
+
+function generateForecast(feeds) {
+    const last24 = feeds.slice(-24);
+
+    const temps  = last24.map(f => f.field1 ? parseFloat(f.field1) : null);
+    const hums   = last24.map(f => f.field2 ? parseFloat(f.field2) : null);
+    const preses = last24.map(f => f.field3 ? parseFloat(f.field3) : null);
+    const confs  = last24.map(f => f.field4 ? parseFloat(f.field4) : null);
+
+    const lastTemp  = [...temps].reverse().find(v=>v!==null)  ?? 20;
+    const lastHum   = [...hums].reverse().find(v=>v!==null)   ?? 50;
+    const lastPress = [...preses].reverse().find(v=>v!==null) ?? 1013;
+
+    const trendTemp  = linearTrend(temps);
+    const trendHum   = linearTrend(hums);
+    const trendPress = linearTrend(preses);
+    const trendConf  = linearTrend(confs);
+
+    const days = ['Aujourd\'hui', 'Demain', 'Après-demain'];
+    const forecasts = [];
+
+    for(let d=0; d<3; d++) {
+        const hours = (d+1) * 8; // on projette de 8h en 8h
+        const projTemp  = lastTemp  + trendTemp  * hours;
+        const projHum   = lastHum   + trendHum   * hours;
+        const projPress = lastPress + trendPress * hours;
+        const projConf  = Math.min(99, Math.max(40, 70 + trendConf * hours));
+
+        const classIdx = predictClass(projTemp, projHum, projPress);
+        const cond = CONDITIONS[classIdx];
+
+        const trendDir = trendTemp > 0.05 ? '↑' : trendTemp < -0.05 ? '↓' : '→';
+        const trendLabel = trendTemp > 0.05 ? 'Hausse thermique' : trendTemp < -0.05 ? 'Baisse thermique' : 'Stable';
+
+        forecasts.push({
+            day: days[d],
+            icon: cond.icon,
+            label: cond.label,
+            color: cond.color,
+            temp: projTemp.toFixed(1),
+            conf: projConf.toFixed(0),
+            trend: trendDir + ' ' + trendLabel,
+        });
+    }
+
+    const grid = document.getElementById('forecast-grid');
+    grid.innerHTML = '';
+    forecasts.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'forecast-card';
+        card.innerHTML = `
+            <div class="fc-day">${f.day}</div>
+            <span class="fc-icon">${f.icon}</span>
+            <div class="fc-label" style="color:${f.color}">${f.label}</div>
+            <div class="fc-temp">${f.temp}<span> °C</span></div>
+            <div class="fc-conf">Confiance IA : ${f.conf}%</div>
+            <div class="fc-trend">${f.trend}</div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+// ── DATA FETCH ────────────────────────────────────────────────────
+async function loadConfig() {
+    try {
+        const r = await fetch('config.json');
+        cfg = await r.json();
+        document.getElementById('station-subtitle').textContent =
+            `${cfg.station.name} · ${cfg.station.location}`;
+    } catch(e) {
+        cfg = {
+            thingspeak:{ channelID:'3347394', readAPIKey:'DHXMOYSJKJOMDGD6' },
+            station:{ name:'Ma Station', location:'--', refreshInterval:20000, historyPoints:24 }
+        };
+        document.getElementById('station-subtitle').textContent = 'Ma Station';
+    }
+}
+
+async function fetchHistory() {
+    const {channelID, readAPIKey} = cfg.thingspeak;
+    const points = Math.max(currentRange, cfg.station?.historyPoints ?? 24);
+    try {
+        const r = await fetch(
+            `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPIKey}&results=${points}`
+        );
+        const data = await r.json();
+        if(!data.feeds?.length) return;
+        allFeeds = data.feeds;
+        renderCharts(allFeeds);
+        generateForecast(allFeeds);
+        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+    } catch(e) { console.error('History fetch:', e); }
+}
+
+function setRange(n) {
+    currentRange = n;
+    document.querySelectorAll('.range-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent === n+' pts');
+    });
+    if(allFeeds.length) {
+        renderCharts(allFeeds);
+        generateForecast(allFeeds);
+    } else {
+        fetchHistory();
+    }
+}
+
+async function init() {
+    await loadConfig();
+    fetchHistory();
+    setInterval(fetchHistory, cfg.station?.refreshInterval ?? 20000);
+}
+init();
+</script>
+</body>
+</html>
