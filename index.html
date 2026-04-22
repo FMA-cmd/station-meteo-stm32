@@ -4,343 +4,148 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Station Météo Edge AI</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        :root {
-            --sky-top: #1a3a5c;
-            --sky-bottom: #2d6a9f;
-            --glass: rgba(255, 255, 255, 0.12);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --glass-hover: rgba(255, 255, 255, 0.18);
-            --text: #ffffff;
-            --text-muted: rgba(255,255,255,0.65);
-            --accent: rgba(255,255,255,0.9);
-        }
-
         body {
-            font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, 'Helvetica Neue', sans-serif;
             min-height: 100vh;
-            background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 60%, #5a9fd4 100%);
-            color: var(--text);
+            background: linear-gradient(180deg, #1c3f6e 0%, #3b7fc4 60%, #87CEEB 100%);
+            color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 60px 20px 40px;
+            padding: 50px 20px 40px;
             transition: background 2s ease;
             overflow-x: hidden;
         }
 
-        /* === BACKGROUND WEATHER MOOD === */
-        body.beau    { --sky-top: #1c3f6e; --sky-bottom: #3b7fc4; background: linear-gradient(180deg, #1c3f6e 0%, #3b7fc4 60%, #87CEEB 100%); }
-        body.pluie   { --sky-top: #2c3e50; --sky-bottom: #4a6070; background: linear-gradient(180deg, #1a2a3a 0%, #3a5060 60%, #556677 100%); }
-        body.orage   { --sky-top: #1a1a2e; --sky-bottom: #16213e; background: linear-gradient(180deg, #0d0d1a 0%, #1a1a3a 60%, #2a2a4a 100%); }
+        body.beau  { background: linear-gradient(180deg, #1c3f6e 0%, #3b7fc4 60%, #87CEEB 100%); }
+        body.pluie { background: linear-gradient(180deg, #1a2a3a 0%, #3a5060 60%, #556677 100%); }
+        body.orage { background: linear-gradient(180deg, #0d0d1a 0%, #1a1a3a 60%, #2a2a4a 100%); }
 
-        /* === CLOUDS (decorative) === */
-        .clouds {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 0;
-        }
-        .cloud {
-            position: absolute;
-            background: rgba(255,255,255,0.06);
-            border-radius: 50px;
-            animation: drift linear infinite;
-        }
-        .cloud::before {
-            content: '';
-            position: absolute;
-            background: rgba(255,255,255,0.06);
-            border-radius: 50%;
-        }
-        .c1 { width: 200px; height: 60px; top: 8%; left: -200px; animation-duration: 40s; }
-        .c1::before { width: 100px; height: 80px; top: -30px; left: 30px; }
-        .c2 { width: 300px; height: 80px; top: 20%; left: -300px; animation-duration: 60s; animation-delay: -20s; }
-        .c2::before { width: 120px; height: 100px; top: -40px; left: 60px; }
-        .c3 { width: 150px; height: 50px; top: 5%; left: -150px; animation-duration: 50s; animation-delay: -10s; }
-        .c3::before { width: 80px; height: 70px; top: -25px; left: 20px; }
-        @keyframes drift { from { left: -400px; } to { left: 110%; } }
+        /* Clouds */
+        .clouds { position:fixed; top:0;left:0;right:0;bottom:0; pointer-events:none; overflow:hidden; z-index:0; }
+        .cloud { position:absolute; background:rgba(255,255,255,0.07); border-radius:50px; animation:drift linear infinite; }
+        .cloud::before { content:''; position:absolute; background:rgba(255,255,255,0.07); border-radius:50%; }
+        .c1{width:200px;height:60px;top:8%;left:-200px;animation-duration:40s;}
+        .c1::before{width:100px;height:80px;top:-30px;left:30px;}
+        .c2{width:300px;height:80px;top:20%;left:-300px;animation-duration:60s;animation-delay:-20s;}
+        .c2::before{width:120px;height:100px;top:-40px;left:60px;}
+        .c3{width:150px;height:50px;top:5%;left:-150px;animation-duration:50s;animation-delay:-10s;}
+        .c3::before{width:80px;height:70px;top:-25px;left:20px;}
+        @keyframes drift{from{left:-400px}to{left:110%}}
 
-        /* Rain effect */
-        .rain-container {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none;
-            z-index: 0;
-            display: none;
-        }
-        body.pluie .rain-container, body.orage .rain-container { display: block; }
-        .raindrop {
-            position: absolute;
-            width: 1px;
-            background: linear-gradient(transparent, rgba(174, 214, 241, 0.6));
-            animation: fall linear infinite;
-            top: -100px;
-        }
-        @keyframes fall { to { transform: translateY(110vh); } }
+        /* Rain */
+        .rain-container{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:0;display:none;}
+        body.pluie .rain-container, body.orage .rain-container{display:block;}
+        .raindrop{position:absolute;width:1px;background:linear-gradient(transparent,rgba(174,214,241,0.6));animation:fall linear infinite;top:-100px;}
+        @keyframes fall{to{transform:translateY(110vh)}}
 
-        /* Lightning for storm */
-        .lightning {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255,255,230,0);
-            pointer-events: none;
-            z-index: 1;
+        /* Lightning */
+        .lightning{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,230,0);pointer-events:none;z-index:1;}
+        body.orage .lightning{animation:strike 8s infinite;}
+        @keyframes strike{0%,89%,91%,93%,100%{background:rgba(255,255,230,0)}90%{background:rgba(255,255,230,0.15)}92%{background:rgba(255,255,230,0.05)}}
+
+        /* Content */
+        .content{position:relative;z-index:2;width:100%;max-width:420px;}
+
+        /* Nav bar */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            animation: fadeDown 0.6s ease both;
         }
-        body.orage .lightning { animation: strike 8s infinite; }
-        @keyframes strike {
-            0%, 89%, 91%, 93%, 100% { background: rgba(255,255,230,0); }
-            90% { background: rgba(255,255,230,0.15); }
-            92% { background: rgba(255,255,230,0.05); }
-        }
-
-        /* === MAIN CONTENT === */
-        .content { position: relative; z-index: 2; width: 100%; max-width: 420px; }
-
-        /* === HERO SECTION (iPhone style) === */
-        .hero {
-            text-align: center;
-            padding: 10px 0 40px;
-            animation: fadeDown 0.8s ease forwards;
-        }
-        @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .city-name {
-            font-size: 2.2rem;
-            font-weight: 300;
-            letter-spacing: -0.5px;
-            margin-bottom: 4px;
-        }
-
-        .hero-temp {
-            font-size: 7rem;
-            font-weight: 200;
-            letter-spacing: -5px;
-            line-height: 1;
-            margin: 5px 0;
-        }
-
-        .hero-condition {
-            font-size: 1.1rem;
-            color: var(--text-muted);
-            font-weight: 400;
-            margin-bottom: 5px;
-        }
-
-        .hero-range {
-            font-size: 1rem;
-            color: var(--text-muted);
-        }
-
-        /* === CARDS GRID === */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-            animation: fadeUp 0.8s 0.2s ease both;
-        }
-
-        .cards-grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 12px;
-            animation: fadeUp 0.8s 0.3s ease both;
-        }
-
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* === GLASS CARD === */
-        .card {
-            background: var(--glass);
-            backdrop-filter: blur(20px) saturate(1.5);
-            -webkit-backdrop-filter: blur(20px) saturate(1.5);
-            border: 1px solid var(--glass-border);
+        .nav a {
+            text-decoration: none;
+            padding: 8px 20px;
             border-radius: 20px;
-            padding: 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.25);
             transition: background 0.2s;
-        }
-        .card:hover { background: var(--glass-hover); }
-
-        .card-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .card-value {
-            font-size: 2rem;
-            font-weight: 300;
-            line-height: 1;
-        }
-
-        .card-unit {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            font-weight: 400;
-        }
-
-        /* === VERDICT CARD (full width) === */
-        .card-verdict {
-            grid-column: span 2;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px 22px;
-        }
-
-        .verdict-left .verdict-title {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            display: flex; align-items: center; gap: 5px;
-        }
-
-        .verdict-label {
-            font-size: 1.6rem;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-
-        .verdict-right {
-            text-align: right;
-        }
-
-        .verdict-confidence {
-            font-size: 2.5rem;
-            font-weight: 200;
-            line-height: 1;
-        }
-
-        .confidence-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        /* Status dot */
-        .dot {
-            width: 6px; height: 6px;
-            background: #34C759;
-            border-radius: 50%;
-            display: inline-block;
-            animation: blink 2s infinite;
-        }
-        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* === TALKBACK CARD === */
-        .card-talkback {
-            animation: fadeUp 0.8s 0.4s ease both;
-        }
-
-        .talkback-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .tb-badge {
-            background: rgba(255,255,255,0.2);
             color: white;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 10px;
         }
+        .nav a.active { background: rgba(255,255,255,0.25); }
+        .nav a:not(.active) { background: rgba(255,255,255,0.1); }
+        .nav a:hover { background: rgba(255,255,255,0.3); }
 
-        .talkback-list {
-            list-style: none;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-        .talkback-list::-webkit-scrollbar { width: 4px; }
-        .talkback-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+        /* Hero */
+        .hero{text-align:center;padding:10px 0 40px;animation:fadeDown 0.8s ease forwards;}
+        @keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+        .city-name{font-size:2.2rem;font-weight:300;letter-spacing:-0.5px;margin-bottom:4px;}
+        .hero-temp{font-size:7rem;font-weight:200;letter-spacing:-5px;line-height:1;margin:5px 0;}
+        .hero-condition{font-size:1.1rem;color:rgba(255,255,255,0.65);font-weight:400;margin-bottom:5px;}
+        .hero-range{font-size:1rem;color:rgba(255,255,255,0.65);}
+        .weather-icon{font-size:3.5rem;margin:5px 0 10px;display:block;animation:float 4s ease-in-out infinite;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 
-        .talkback-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            font-size: 0.9rem;
-        }
-        .talkback-list li:last-child { border-bottom: none; }
+        /* Cards */
+        .cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;animation:fadeUp 0.8s 0.2s ease both;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
-        .tb-time { color: var(--text-muted); font-variant-numeric: tabular-nums; font-size: 0.82rem; }
-        .tb-cmd { font-weight: 500; }
+        .card{
+            background:rgba(255,255,255,0.12);
+            backdrop-filter:blur(20px) saturate(1.5);
+            -webkit-backdrop-filter:blur(20px) saturate(1.5);
+            border:1px solid rgba(255,255,255,0.2);
+            border-radius:20px;
+            padding:16px;
+            transition:background 0.2s;
+        }
+        .card:hover{background:rgba(255,255,255,0.18);}
+        .card-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.65);margin-bottom:8px;display:flex;align-items:center;gap:5px;}
+        .card-value{font-size:2rem;font-weight:300;line-height:1;}
+        .card-unit{font-size:0.9rem;color:rgba(255,255,255,0.65);font-weight:400;}
 
-        /* Weather icon animation */
-        .weather-icon {
-            font-size: 3.5rem;
-            margin: 5px 0 10px;
-            display: block;
-            animation: float 4s ease-in-out infinite;
-        }
-        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .card-verdict{grid-column:span 2;display:flex;align-items:center;justify-content:space-between;padding:20px 22px;}
+        .verdict-left .verdict-title{font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.65);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+        .verdict-label{font-size:1.6rem;font-weight:600;letter-spacing:-0.5px;}
+        .verdict-right{text-align:right;}
+        .verdict-confidence{font-size:2.5rem;font-weight:200;line-height:1;}
+        .confidence-label{font-size:0.75rem;color:rgba(255,255,255,0.65);}
 
-        /* Update bar */
-        .update-bar {
-            text-align: center;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            padding: 16px 0 0;
-            animation: fadeUp 0.8s 0.5s ease both;
-        }
+        .dot{width:6px;height:6px;background:#34C759;border-radius:50%;display:inline-block;animation:blink 2s infinite;}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
-        /* Stars for clear night */
-        .stars {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            pointer-events: none;
-            z-index: 0;
-            display: none;
-        }
-        .star {
-            position: absolute;
-            width: 2px; height: 2px;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle ease-in-out infinite;
-        }
-        @keyframes twinkle { 0%,100%{opacity:0.8} 50%{opacity:0.2} }
+        /* TalkBack */
+        .card-talkback{animation:fadeUp 0.8s 0.4s ease both;}
+        .talkback-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+        .tb-badge{background:rgba(255,255,255,0.2);color:white;font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:10px;}
+        .talkback-list{list-style:none;max-height:220px;overflow-y:auto;}
+        .talkback-list::-webkit-scrollbar{width:4px;}
+        .talkback-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:2px;}
+        .talkback-list li{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.9rem;}
+        .talkback-list li:last-child{border-bottom:none;}
+        .tb-time{color:rgba(255,255,255,0.65);font-variant-numeric:tabular-nums;font-size:0.82rem;}
+        .tb-cmd{font-weight:500;}
+
+        .update-bar{text-align:center;font-size:0.75rem;color:rgba(255,255,255,0.65);padding:16px 0 0;animation:fadeUp 0.8s 0.5s ease both;}
     </style>
 </head>
 <body class="beau">
-
-    <div class="clouds">
-        <div class="cloud c1"></div>
-        <div class="cloud c2"></div>
-        <div class="cloud c3"></div>
-    </div>
+    <div class="clouds"><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
     <div class="rain-container" id="rain"></div>
     <div class="lightning"></div>
-    <div class="stars" id="stars"></div>
 
     <div class="content">
+        <nav class="nav">
+            <a href="index.html" class="active">🌤 Maintenant</a>
+            <a href="graphs.html">📈 Graphiques</a>
+        </nav>
 
-        <!-- HERO -->
         <div class="hero">
-            <div class="city-name">Ma Station</div>
+            <div class="city-name" id="station-name">Ma Station</div>
             <span class="weather-icon" id="weather-icon">☀️</span>
             <div class="hero-temp"><span id="temp">--</span><span style="font-size:3rem">°</span></div>
             <div class="hero-condition" id="hero-condition">Analyse en cours…</div>
             <div class="hero-range" id="hero-range">Confiance : -- %</div>
         </div>
 
-        <!-- ROW 1: Humidité + Pression -->
         <div class="cards-grid">
             <div class="card">
                 <div class="card-label">💧 Humidité</div>
@@ -350,11 +155,9 @@
                 <div class="card-label">🌪 Pression</div>
                 <div class="card-value"><span id="press">--</span><span class="card-unit" style="font-size:0.7rem"> hPa</span></div>
             </div>
-
-            <!-- VERDICT CARD full-width -->
             <div class="card card-verdict">
                 <div class="verdict-left">
-                    <div class="verdict-title">⚡ Verdict IA &nbsp;<span class="dot"></span></div>
+                    <div class="verdict-title">⚡ Verdict IA <span class="dot"></span></div>
                     <div class="verdict-label" id="verdict">Analyse...</div>
                 </div>
                 <div class="verdict-right">
@@ -364,7 +167,6 @@
             </div>
         </div>
 
-        <!-- TALKBACK -->
         <div class="card card-talkback">
             <div class="talkback-header">
                 <div class="card-label" style="margin-bottom:0">📋 Historique TalkBack</div>
@@ -382,100 +184,109 @@
     </div>
 
     <script>
-        const channelID   = '3347394';
-        const readAPIKey  = 'DHXMOYSJKJOMDGD6';
-        const talkbackID  = '56801';
-        const talkbackKey = 'YOSMVPGKEFNLLX1W';
-
-        const urlFeed     = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPIKey}&results=1`;
-        const urlTalkback = `https://api.thingspeak.com/talkbacks/${talkbackID}/commands.json?api_key=${talkbackKey}`;
+        let cfg = {};
+        let currentThemeIndex = -1;
 
         const CONDITIONS = [
-            { label: "Beau Temps", icon: "☀️",  theme: "beau",  color: "#FFD60A" },
-            { label: "Pluvieux",   icon: "🌧️",  theme: "pluie", color: "#7EC8E3" },
-            { label: "Orageux",    icon: "⛈️",  theme: "orage", color: "#BF5AF2" },
+            { label:"Beau Temps", icon:"☀️",  theme:"beau",  color:"#FFD60A" },
+            { label:"Pluvieux",   icon:"🌧️",  theme:"pluie", color:"#7EC8E3" },
+            { label:"Orageux",    icon:"⛈️",  theme:"orage", color:"#BF5AF2" },
         ];
+        const TB_LABEL_MAP = { "Beau_Temps":0, "Pluvieux":1, "Orageux":2 };
 
         function buildRain(count=60) {
-            const container = document.getElementById('rain');
-            container.innerHTML = '';
+            const c = document.getElementById('rain');
+            c.innerHTML = '';
             for(let i=0;i<count;i++){
-                const d = document.createElement('div');
-                d.className = 'raindrop';
-                d.style.cssText = `
-                    left:${Math.random()*100}%;
-                    height:${10+Math.random()*20}px;
-                    animation-duration:${0.5+Math.random()*0.8}s;
-                    animation-delay:${-Math.random()*2}s;
-                    opacity:${0.3+Math.random()*0.4};
-                `;
-                container.appendChild(d);
+                const d=document.createElement('div');
+                d.className='raindrop';
+                d.style.cssText=`left:${Math.random()*100}%;height:${10+Math.random()*20}px;animation-duration:${0.5+Math.random()*0.8}s;animation-delay:${-Math.random()*2}s;opacity:${0.3+Math.random()*0.4};`;
+                c.appendChild(d);
             }
         }
 
         function setTheme(index) {
-            const c = CONDITIONS[index];
-            document.body.className = c.theme;
-            document.getElementById('weather-icon').textContent = c.icon;
-            document.getElementById('verdict').textContent = c.label;
-            document.getElementById('verdict').style.color = c.color;
-            document.getElementById('hero-condition').textContent = c.label;
-            if(c.theme !== 'beau') buildRain(c.theme === 'orage' ? 100 : 60);
+            if(index===currentThemeIndex) return;
+            currentThemeIndex=index;
+            const c=CONDITIONS[index];
+            document.body.className=c.theme;
+            document.getElementById('weather-icon').textContent=c.icon;
+            document.getElementById('verdict').textContent=c.label;
+            document.getElementById('verdict').style.color=c.color;
+            document.getElementById('hero-condition').textContent=c.label;
+            document.getElementById('rain').innerHTML='';
+            if(c.theme!=='beau') buildRain(c.theme==='orage'?120:60);
+        }
+
+        async function loadConfig() {
+            try {
+                const r = await fetch('config.json');
+                cfg = await r.json();
+                document.getElementById('station-name').textContent = cfg.station.name;
+            } catch(e) {
+                // fallback hardcodé si config.json absent
+                cfg = {
+                    thingspeak:{ channelID:'3347394', readAPIKey:'DHXMOYSJKJOMDGD6', talkbackID:'56801', talkbackAPIKey:'YOSMVPGKEFNLLX1W' },
+                    station:{ name:'Ma Station', refreshInterval:20000 }
+                };
+            }
         }
 
         async function fetchMeteo() {
+            const {channelID,readAPIKey} = cfg.thingspeak;
             try {
-                const r = await fetch(urlFeed);
+                const r = await fetch(`https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPIKey}&results=1`);
                 const data = await r.json();
                 if(!data.feeds?.length) return;
                 const f = data.feeds[0];
-
-                if(f.field1) document.getElementById('temp').textContent = parseFloat(f.field1).toFixed(1);
-                if(f.field2) document.getElementById('hum').textContent  = parseFloat(f.field2).toFixed(0);
-                if(f.field3) document.getElementById('press').textContent= parseFloat(f.field3).toFixed(0);
-                if(f.field4) {
-                    const prob = parseFloat(f.field4).toFixed(1);
-                    document.getElementById('prob').textContent = prob;
-                    document.getElementById('hero-range').textContent = `Confiance : ${prob} %`;
+                if(f.field1) document.getElementById('temp').textContent=parseFloat(f.field1).toFixed(1);
+                if(f.field2) document.getElementById('hum').textContent=parseFloat(f.field2).toFixed(0);
+                if(f.field3) document.getElementById('press').textContent=parseFloat(f.field3).toFixed(0);
+                if(f.field4){
+                    const prob=parseFloat(f.field4).toFixed(1);
+                    document.getElementById('prob').textContent=prob;
+                    document.getElementById('hero-range').textContent=`Confiance : ${prob} %`;
                 }
-
-                const idx = parseInt(f.field5);
-                if(!isNaN(idx) && idx >= 0 && idx < CONDITIONS.length) setTheme(idx);
-
-                document.getElementById('heure').textContent = new Date(f.created_at).toLocaleTimeString();
-            } catch(e) { console.error('Capteurs:', e); }
+                const idx=parseInt(f.field5);
+                if(!isNaN(idx)&&idx>=0&&idx<CONDITIONS.length) setTheme(idx);
+                document.getElementById('heure').textContent=new Date(f.created_at).toLocaleTimeString();
+            } catch(e){console.error('Capteurs:',e);}
         }
 
         async function fetchTalkBack() {
+            const {talkbackID,talkbackAPIKey} = cfg.thingspeak;
             try {
-                const r = await fetch(urlTalkback);
+                const r = await fetch(`https://api.thingspeak.com/talkbacks/${talkbackID}/commands.json?api_key=${talkbackAPIKey}`);
                 const cmds = await r.json();
                 const list = document.getElementById('talkback-list');
-                document.getElementById('tb-count').textContent = cmds.length;
-                list.innerHTML = '';
-
-                if(!cmds.length) {
-                    list.innerHTML = '<li style="justify-content:center;color:rgba(255,255,255,0.4)">Aucune commande en attente.</li>';
+                document.getElementById('tb-count').textContent=cmds.length;
+                list.innerHTML='';
+                if(!cmds.length){
+                    list.innerHTML='<li style="justify-content:center;color:rgba(255,255,255,0.4)">Aucune commande en attente.</li>';
                     return;
                 }
-
-                const colorMap = { "Beau_Temps": "#FFD60A", "Pluvieux": "#7EC8E3", "Orageux": "#BF5AF2" };
-                [...cmds].reverse().forEach(cmd => {
-                    const li = document.createElement('li');
-                    const time = new Date(cmd.created_at).toLocaleTimeString();
-                    const color = colorMap[cmd.command_string] || 'white';
-                    li.innerHTML = `
-                        <span class="tb-time">${time}</span>
-                        <span class="tb-cmd" style="color:${color}">${cmd.command_string}</span>
-                    `;
+                if(currentThemeIndex===-1&&cmds.length>0){
+                    const fallbackIdx=TB_LABEL_MAP[cmds[cmds.length-1].command_string];
+                    if(fallbackIdx!==undefined) setTheme(fallbackIdx);
+                }
+                const colorMap={"Beau_Temps":"#FFD60A","Pluvieux":"#7EC8E3","Orageux":"#BF5AF2"};
+                [...cmds].reverse().forEach(cmd=>{
+                    const li=document.createElement('li');
+                    const time=new Date(cmd.created_at).toLocaleTimeString();
+                    const color=colorMap[cmd.command_string]||'white';
+                    li.innerHTML=`<span class="tb-time">${time}</span><span class="tb-cmd" style="color:${color}">${cmd.command_string}</span>`;
                     list.appendChild(li);
                 });
-            } catch(e) { console.error('TalkBack:', e); }
+            } catch(e){console.error('TalkBack:',e);}
         }
 
-        function refresh() { fetchMeteo(); fetchTalkBack(); }
-        refresh();
-        setInterval(refresh, 20000);
+        async function init() {
+            await loadConfig();
+            const refresh = () => { fetchMeteo(); fetchTalkBack(); };
+            refresh();
+            setInterval(refresh, cfg.station.refreshInterval || 20000);
+        }
+        init();
     </script>
 </body>
 </html>
