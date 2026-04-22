@@ -136,6 +136,70 @@
             vertical-align: middle;
         }
 
+        /* === HISTORIQUE TALKBACK === */
+        .talkback-container {
+            margin-top: 40px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-sizing: border-box;
+        }
+
+        .talkback-container h3 {
+            text-align: left;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tb-count {
+            background: var(--accent-ia);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        #talkback-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Custom Scrollbar pour la liste */
+        #talkback-list::-webkit-scrollbar { width: 6px; }
+        #talkback-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+        #talkback-list li {
+            background: rgba(0,0,0,0.3);
+            margin-bottom: 8px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 3px solid var(--accent-ia);
+        }
+
+        .tb-time {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            font-family: monospace;
+        }
+
+        .tb-cmd {
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
     </style>
 </head>
 <body>
@@ -171,37 +235,49 @@
         </div>
     </div>
 
+    <div class="talkback-container">
+        <h3>
+            <span>📋 Historique TalkBack (Commandes en attente)</span>
+            <span class="tb-count" id="tb-count">0</span>
+        </h3>
+        <ul id="talkback-list">
+            <li style="color: var(--text-muted); justify-content: center; border-left: none;">Chargement de l'historique...</li>
+        </ul>
+    </div>
+
     <script>
-        // === ⚠️ METS TES CLES THINGSPEAK ICI ⚠️ ===
+        // === ⚠️ TES CLES THINGSPEAK (À VÉRIFIER) ⚠️ ===
         const channelID = 'TON_CHANNEL_ID';   
         const readAPIKey = 'TA_READ_API_KEY'; 
+
+        // Tes identifiants TalkBack (Récupérés depuis ton code C)
+        const talkbackID = '56801';
+        const talkbackAPIKey = 'YOSMVPGKEFNLLX1W';
         // ==========================================
 
-        const url = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPIKey}&results=1`;
+        const urlFeed = `https://api.thingspeak.com/channels/${channelID}/feeds.json?api_key=${readAPIKey}&results=1`;
+        const urlTalkback = `https://api.thingspeak.com/talkbacks/${talkbackID}/commands.json?api_key=${talkbackAPIKey}`;
         
-        // Les labels qui correspondent exactement à tes index C (0, 1, 2)
         const meteoLabels = ["Beau Temps", "Pluvieux", "Orageux"];
         const meteoColors = ["var(--color-beau)", "var(--color-pluie)", "var(--color-orage)"];
 
+        // 1. Récupération des données capteurs
         async function fetchMeteo() {
             try {
-                const response = await fetch(url);
+                const response = await fetch(urlFeed);
                 const data = await response.json();
                 
                 if(data.feeds && data.feeds.length > 0) {
                     const dernierReleve = data.feeds[0];
 
-                    // Mise à jour des capteurs (Field 1, 2, 3)
                     document.getElementById('temp').innerText = dernierReleve.field1 ? dernierReleve.field1 : "--";
                     document.getElementById('hum').innerText = dernierReleve.field2 ? dernierReleve.field2 : "--";
                     document.getElementById('press').innerText = dernierReleve.field3 ? dernierReleve.field3 : "--";
                     
-                    // Mise à jour de la probabilité exacte (Field 4)
                     if(dernierReleve.field4) {
                         document.getElementById('prob').innerText = parseFloat(dernierReleve.field4).toFixed(1);
                     }
 
-                    // Mise à jour du texte Verdict (Field 5)
                     const indexIA = parseInt(dernierReleve.field5);
                     const verdictElement = document.getElementById('verdict');
                     
@@ -210,17 +286,62 @@
                         verdictElement.style.color = meteoColors[indexIA];
                     }
 
-                    // Mise à jour de l'heure
                     document.getElementById('heure').innerText = new Date(dernierReleve.created_at).toLocaleTimeString();
                 }
             } catch (error) {
-                console.error("Erreur de connexion à ThingSpeak :", error);
+                console.error("Erreur Capteurs :", error);
             }
         }
 
-        // Lancer la première lecture, puis actualiser toutes les 20 secondes
-        fetchMeteo();
-        setInterval(fetchMeteo, 20000);
+        // 2. Récupération de la file TalkBack
+        async function fetchTalkBack() {
+            try {
+                const response = await fetch(urlTalkback);
+                const commands = await response.json();
+                
+                const listElement = document.getElementById('talkback-list');
+                const countElement = document.getElementById('tb-count');
+                
+                listElement.innerHTML = ''; // On vide la liste
+                countElement.innerText = commands.length; // On met à jour le compteur
+
+                if (commands.length === 0) {
+                    listElement.innerHTML = '<li style="color: var(--text-muted); justify-content: center; border-left: none;">Aucune commande en attente.</li>';
+                    return;
+                }
+
+                // On affiche la liste (les plus récentes en haut)
+                // Inverser le tableau pour avoir le dernier POST en premier
+                commands.reverse().forEach(cmd => {
+                    const li = document.createElement('li');
+                    const date = new Date(cmd.created_at).toLocaleTimeString();
+                    
+                    // On attribue la couleur correspondante à la commande si possible
+                    let colorCode = "var(--text-main)";
+                    if(cmd.command_string === "Beau_Temps") colorCode = "var(--color-beau)";
+                    if(cmd.command_string === "Pluvieux") colorCode = "var(--color-pluie)";
+                    if(cmd.command_string === "Orageux") colorCode = "var(--color-orage)";
+
+                    li.innerHTML = `
+                        <span class="tb-time">🕒 ${date}</span> 
+                        <span class="tb-cmd" style="color: ${colorCode}">${cmd.command_string}</span>
+                    `;
+                    listElement.appendChild(li);
+                });
+
+            } catch (error) {
+                console.error("Erreur TalkBack :", error);
+            }
+        }
+
+        // Boucle principale
+        function actualiserDashboard() {
+            fetchMeteo();
+            fetchTalkBack();
+        }
+
+        actualiserDashboard();
+        setInterval(actualiserDashboard, 20000);
     </script>
 
 </body>
