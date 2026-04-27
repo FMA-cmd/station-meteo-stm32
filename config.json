@@ -7,7 +7,7 @@
   },
   "station": {
     "name": "Ma Station",
-    "location": "Annecy, FR",
+    "location": "Le Bourget-du-Lac, FR",
     "refreshInterval": 20000,
     "historyPoints": 24
   }
